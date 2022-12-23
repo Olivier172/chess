@@ -78,6 +78,71 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
   print(game, file=open("data/chessgame.pgn", "w"), end="\n\n")
   return finalNode.board() 
 
+def processImages():
+  #test input inlezen
+  #test = cv2.imread("data/chessboard/test_0.png",0 )
+  img = cv2.imread("data/games/game4/IMG_E2512.JPG",0)
+  img2 = cv2.imread("data/games/game4/IMG_E2513.JPG",0)
+  #img.resize((400,400))
+  #scaled_img = cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4))
+  #scaled_img2 = cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4))
+
+  diff = cv2.absdiff(img, img2)
+
+  # Specify the size of the chessboard (8x8)
+  chessboard_size = (3, 3)
+
+  #Find the chessboard corners
+  thres,thresIm = cv2.threshold(diff,0,255,cv2.THRESH_OTSU)
+  ret, corners = cv2.findChessboardCorners(thresIm, chessboard_size)
+  print(corners)
+  #If the corners were found, draw them on the image
+  if ret:
+    imgCor = cv2.drawChessboardCorners(diff, chessboard_size, corners, ret)
+    #Displays image inside a window
+    cv2.imshow('img1',cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4)) )  
+    cv2.imshow('img2',cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4)))
+    cv2.imshow('diff',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
+    # Waits for a keystroke
+    cv2.waitKey(0)  
+    # Destroys all the windows created
+    cv2.destroyAllwindows() 
+  else:
+    print ("no corners found")
+
+
+
+  # # Color-segmentation to get binary mask
+  # lwr = np.array([0, 0, 143])
+  # upr = np.array([179, 150, 252])
+  # hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+  # msk = cv2.inRange(hsv, lwr, upr)
+
+  # # Extract chess-board
+  # krn = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 30))
+  # dlt = cv2.dilate(msk, krn, iterations=5)
+  # res = 255 - cv2.bitwise_and(dlt, msk)
+
+  # # Displaying chess-board features
+  # res = np.uint8(res)
+  # ret, corners = cv2.findChessboardCorners(res, chessboard_size)
+  # if ret:
+  #     print(corners)
+  #     fnl = cv2.drawChessboardCorners(img, chessboard_size, corners, ret)
+  #     #lab.grid_imshow([scaled_img, scaled_img2, fnl],bgr2rgb=True)
+
+  # else:
+  #     print("No Checkerboard Found")
+  #     #Displays image inside a window
+  #     cv2.imshow('color image',cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4)) )  
+  #     cv2.imshow('grayscale image',cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4)))
+  #     cv2.imshow('unchanged image',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
+  #     # Waits for a keystroke
+  #     cv2.waitKey(0)  
+  #     # Destroys all the windows created
+  #     cv2.destroyAllwindows() 
+
+
 def main():
     testChess()
     testNotations()
@@ -85,6 +150,8 @@ def main():
     movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
     board = game2pgn(movesUCI)
     print(board)
+
+    processImages()
 
 if __name__=="__main__":
     main()
