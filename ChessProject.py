@@ -3,6 +3,8 @@ import numpy as np
 import chess
 import chess.pgn
 
+
+
 def testChess():
     #Request a new chessboard:
     board = chess.Board() 
@@ -78,19 +80,85 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
   print(game, file=open("data/chessgame.pgn", "w"), end="\n\n")
   return finalNode.board() 
 
+def detectBoard(img):
+
+  template = cv2.imread('data/games/template.jpg')
+
+  h,w,_ = template.shape
+
+  imgListOut = list()
+  methods = [cv2.TM_CCOEFF_NORMED, cv2.TM_CCORR_NORMED, cv2.TM_SQDIFF_NORMED]
+
+
+  for meth in methods:
+    imgCopy = img.copy()
+    res = cv2.matchTemplate(img,template,meth)
+
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+    if meth == cv2.TM_SQDIFF_NORMED:
+      top_left = min_loc
+    else:
+      top_left = max_loc
+    
+    print(w)
+    print(h)
+    
+    bottom_right = (top_left[0] + w, top_left[1] + h)
+
+    cv2.rectangle(imgCopy,top_left, bottom_right, (0,0,255),4)
+
+    bottom_left = (bottom_right[0]-w, bottom_right[1])
+    top_right = (top_left[0] + w, top_left[1])
+    print(top_right)
+    #draw vertical lines
+    for x in range(9):
+      startPt = (top_left[0]+x*w//8, top_left[1])
+      endPt = (bottom_left[0] +x*w//8, bottom_left[1])
+      cv2.line(imgCopy,startPt, endPt, (255,0,2),2)
+    #draw horizontal lines
+    for y in range(9):
+      startPt = (top_left[0], top_left[1]+y*h//8)
+      endPt = (top_right[0], top_right[1]+y*h//8)
+      cv2.line(imgCopy,startPt, endPt, (0,255,0),2)
+    imgListOut.append(imgCopy)
+
+  cv2.imshow('input',img)  
+  cv2.imshow('ccoeff',imgListOut[0])
+  cv2.imshow('ccorr',imgListOut[1])
+  cv2.imshow('sqdiff',imgListOut[2])
+  # Waits for a keystroke
+  cv2.waitKey(0)  
+
+
 def processImages():
   #test input inlezen
   #test = cv2.imread("data/chessboard/test_0.png",0 )
-  img = cv2.imread("data/games/game4/IMG_E2512.JPG",0)
-  img2 = cv2.imread("data/games/game4/IMG_E2513.JPG",0)
+  GAMENR = 0
+  MOVE = 0
+  
+  print(f"data/games/G{GAMENR}_{MOVE+1:02d}.jpg")
+
+  img = cv2.imread(f"data/games/G{GAMENR}_{MOVE:02d}.jpg",0)
+  img2 = cv2.imread(f"data/games/G{GAMENR}_{MOVE+1:02d}.jpg",0)
+  
   #img.resize((400,400))
   #scaled_img = cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4))
   #scaled_img2 = cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4))
 
+
+
   diff = cv2.absdiff(img, img2)
 
-  # Specify the size of the chessboard (8x8)
-  chessboard_size = (3, 3)
+  # Specify the size of t
+  # he chessboard (8x8)
+  chessboard_size = (5, 5)
+  #Displays image inside a window
+  cv2.imshow('img1',cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4)) )  
+  cv2.imshow('img2',cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4)))
+  cv2.imshow('diff',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
+  # Waits for a keystroke
+  cv2.waitKey(0)  
 
   #Find the chessboard corners
   thres,thresIm = cv2.threshold(diff,0,255,cv2.THRESH_OTSU)
@@ -105,8 +173,6 @@ def processImages():
     cv2.imshow('diff',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
     # Waits for a keystroke
     cv2.waitKey(0)  
-    # Destroys all the windows created
-    cv2.destroyAllwindows() 
   else:
     print ("no corners found")
 
@@ -144,14 +210,25 @@ def processImages():
 
 
 def main():
-    testChess()
-    testNotations()
-    
-    movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
-    board = game2pgn(movesUCI)
-    print(board)
+  testChess()
+  testNotations()
+  
+  movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
+  board = game2pgn(movesUCI)
+  print(board)
+  
 
-    processImages()
+  GAMENR = 0
+  MOVE = 0
+  img = cv2.imread(f"data/games/G{GAMENR}_{MOVE:02d}_small.jpg")
+  img2 = cv2.imread(f"data/games/G{GAMENR}_{MOVE+1:02d}_small.jpg")
+  detectBoard(img)
+  detectBoard(img2)
+
+
+  # processImages()
+
+
 
 if __name__=="__main__":
     main()
