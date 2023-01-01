@@ -3,7 +3,9 @@ import numpy as np
 import chess
 import chess.pgn
 
-
+BOARDROWS = 8
+BOARDCOLS = 8
+GAMENR = 0
 
 def testChess():
     #Request a new chessboard:
@@ -81,33 +83,22 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
   return finalNode.board() 
 
 def detectBoard(img):
-
   template = cv2.imread('data/games/template.jpg')
-
   h,w,_ = template.shape
-
   imgListOut = list()
   methods = [cv2.TM_CCOEFF_NORMED, cv2.TM_CCORR_NORMED, cv2.TM_SQDIFF_NORMED]
-
-
   for meth in methods:
     imgCopy = img.copy()
     res = cv2.matchTemplate(img,template,meth)
-
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-
     if meth == cv2.TM_SQDIFF_NORMED:
       top_left = min_loc
     else:
       top_left = max_loc
-    
     print(w)
-    print(h)
-    
+    print(h) 
     bottom_right = (top_left[0] + w, top_left[1] + h)
-
     cv2.rectangle(imgCopy,top_left, bottom_right, (0,0,255),4)
-
     bottom_left = (bottom_right[0]-w, bottom_right[1])
     top_right = (top_left[0] + w, top_left[1])
     print(top_right)
@@ -122,111 +113,110 @@ def detectBoard(img):
       endPt = (top_right[0], top_right[1]+y*h//8)
       cv2.line(imgCopy,startPt, endPt, (0,255,0),2)
     imgListOut.append(imgCopy)
+  # cv2.imshow('input',img)  
+  # cv2.imshow('ccoeff',imgListOut[0])
+  # cv2.imshow('ccorr',imgListOut[1])
+  # cv2.imshow('sqdiff',imgListOut[2])
+  # # Waits for a keystroke
+  # cv2.waitKey(0) 
+  return top_left, w, h
 
-  cv2.imshow('input',img)  
-  cv2.imshow('ccoeff',imgListOut[0])
-  cv2.imshow('ccorr',imgListOut[1])
-  cv2.imshow('sqdiff',imgListOut[2])
-  # Waits for a keystroke
-  cv2.waitKey(0)  
-
-
-def processImages():
-  #test input inlezen
-  #test = cv2.imread("data/chessboard/test_0.png",0 )
-  GAMENR = 0
-  MOVE = 0
-  
-  print(f"data/games/G{GAMENR}_{MOVE+1:02d}.jpg")
-
-  img = cv2.imread(f"data/games/G{GAMENR}_{MOVE:02d}.jpg",0)
-  img2 = cv2.imread(f"data/games/G{GAMENR}_{MOVE+1:02d}.jpg",0)
-  
-  #img.resize((400,400))
-  #scaled_img = cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4))
-  #scaled_img2 = cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4))
-
-
-
+def calcDiff(img, img2, offset, width, height):
   diff = cv2.absdiff(img, img2)
+  diffGrid = np.zeros((BOARDROWS,BOARDCOLS),dtype=int)
+  first = (0,0,0)
+  second = (0,0,0)
+  for row in range(BOARDROWS):
+    y1 = offset[1] + row*height//BOARDROWS
+    y2 = y1 + height//BOARDROWS
+    for col in range(BOARDCOLS):
+      x1 = offset[0] + col*width//BOARDCOLS
+      x2 = x1 + width//BOARDCOLS
+      intensity = cv2.mean(diff[y1:y2, x1:x2])[0]
+      diffGrid[row][col] = intensity
+      if intensity > first[0]:
+        second = first
+        first = (intensity, row, col)
+      elif intensity > second[0]:
+        second = (intensity, row, col)
 
-  # Specify the size of t
-  # he chessboard (8x8)
-  chessboard_size = (5, 5)
-  #Displays image inside a window
-  cv2.imshow('img1',cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4)) )  
-  cv2.imshow('img2',cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4)))
-  cv2.imshow('diff',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
-  # Waits for a keystroke
-  cv2.waitKey(0)  
+  print("diffgrid = \n" + str(diffGrid)) 
+  print("first: " + str(first))  
+  print("second: " + str(second))    
 
-  #Find the chessboard corners
-  thres,thresIm = cv2.threshold(diff,0,255,cv2.THRESH_OTSU)
-  ret, corners = cv2.findChessboardCorners(thresIm, chessboard_size)
-  print(corners)
-  #If the corners were found, draw them on the image
-  if ret:
-    imgCor = cv2.drawChessboardCorners(diff, chessboard_size, corners, ret)
-    #Displays image inside a window
-    cv2.imshow('img1',cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4)) )  
-    cv2.imshow('img2',cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4)))
-    cv2.imshow('diff',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
-    # Waits for a keystroke
-    cv2.waitKey(0)  
-  else:
-    print ("no corners found")
+  cv2.imshow("img",img)
+  cv2.imshow("img2",img2)
+  cv2.imshow("diff",diff)  
+  cv2.waitKey(0) 
 
+  return diffGrid, first, second
 
+def tupleToChessposition(tup):
+  col_labels = "abcdefgh"
+  col = col_labels[tup[1]]
+  row = str(BOARDROWS - tup[0])  
+  return col + row
 
-  # # Color-segmentation to get binary mask
-  # lwr = np.array([0, 0, 143])
-  # upr = np.array([179, 150, 252])
-  # hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-  # msk = cv2.inRange(hsv, lwr, upr)
-
-  # # Extract chess-board
-  # krn = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 30))
-  # dlt = cv2.dilate(msk, krn, iterations=5)
-  # res = 255 - cv2.bitwise_and(dlt, msk)
-
-  # # Displaying chess-board features
-  # res = np.uint8(res)
-  # ret, corners = cv2.findChessboardCorners(res, chessboard_size)
-  # if ret:
-  #     print(corners)
-  #     fnl = cv2.drawChessboardCorners(img, chessboard_size, corners, ret)
-  #     #lab.grid_imshow([scaled_img, scaled_img2, fnl],bgr2rgb=True)
-
-  # else:
-  #     print("No Checkerboard Found")
-  #     #Displays image inside a window
-  #     cv2.imshow('color image',cv2.resize(img, (img.shape[1] // 4, img.shape[0] // 4)) )  
-  #     cv2.imshow('grayscale image',cv2.resize(img2, (img2.shape[1] // 4, img2.shape[0] // 4)))
-  #     cv2.imshow('unchanged image',cv2.resize(diff, (diff.shape[1] // 4, diff.shape[0] // 4)))
-  #     # Waits for a keystroke
-  #     cv2.waitKey(0)  
-  #     # Destroys all the windows created
-  #     cv2.destroyAllwindows() 
-
+def tupleToChesspiece(tup, board):
+  position = tupleToChessposition(tup)
+  print("pos: "+ position)
+  # move = "e1"
+  # squ = chess.Square.from_square_string(move)
+  piece = board.piece_at(chess.parse_square(position))
+  print(piece)
+  # Get the piece at the square
+  # piece = board.piece_at(squ)
+  return piece
 
 def main():
+  
   testChess()
   testNotations()
   
   movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
   board = game2pgn(movesUCI)
   print(board)
-  
 
-  GAMENR = 0
-  MOVE = 0
-  img = cv2.imread(f"data/games/G{GAMENR}_{MOVE:02d}_small.jpg")
-  img2 = cv2.imread(f"data/games/G{GAMENR}_{MOVE+1:02d}_small.jpg")
-  detectBoard(img)
-  detectBoard(img2)
+  moveTurn = 0
+  movesUCI = []
+  board = chess.Board()
 
+  img = cv2.imread(f"data/games/G{GAMENR}_{moveTurn:02d}_small.jpg")
+  img2 = cv2.imread(f"data/games/G{GAMENR}_{moveTurn+1:02d}_small.jpg")
+  while img2 is not None:
+    #detect board
+    offset, width, height = detectBoard(img2)
 
-  # processImages()
+    #calc the 2 squares on the board that changed the most from the previous move
+    diffGrid, first, second = calcDiff(img, img2, offset, width, height)    
+
+    #intensity is no longer needed in the first and second var
+    first = first[1:3]
+    second = second[1:3]
+    #calc which is the FROM position and which is the TO position
+    #   check whos turn it is and check what position contains a piece with the same color, this will be the FROM position 
+    pieceOnFirst = tupleToChesspiece(first, board)
+    
+    print(pieceOnFirst)
+    if board.turn == pieceOnFirst.color:
+      print("FROM FIRST TO SECOND")
+      move = tupleToChessposition(first) + tupleToChessposition(second)
+    else:
+      print("FROM SECOND TO FIRST")
+      move = tupleToChessposition(second) + tupleToChessposition(first)
+
+    #push the move to the board
+    moveObject=chess.Move.from_uci(move)
+    board.push_uci(move)
+    print(board)
+    movesUCI.append(move)
+    print("move: " + move)
+    #load next move/image
+    moveTurn += 1
+    img = img2
+    img2 = cv2.imread(f"data/games/G{GAMENR}_{moveTurn+1:02d}_small.jpg")
+
+  game2pgn(movesUCI)
 
 
 

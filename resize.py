@@ -4,7 +4,6 @@ import cv2
 import os
 import glob
 folder = 'data\games'
-resolution = (640, 480)  # width, height
 
 # Get a list of all the images in the folder
 images = glob.glob(os.path.join(folder, '*.jpg'))
