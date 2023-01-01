@@ -5,7 +5,7 @@ import chess.pgn
 
 BOARDROWS = 8
 BOARDCOLS = 8
-GAMENR = 0
+GAMENR = 2
 
 def testChess():
     #Request a new chessboard:
@@ -79,7 +79,7 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
   print(game)
   print(50*"-")
   #Saving the pgn to a file
-  print(game, file=open("data/chessgame.pgn", "w"), end="\n\n")
+  print(game, file=open(f"data/game{GAMENR}.pgn", "w"), end="\n\n")
   return finalNode.board() 
 
 def detectBoard(img):
@@ -170,12 +170,11 @@ def tupleToChesspiece(tup, board):
 
 def main():
   
-  testChess()
-  testNotations()
-  
-  movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
-  board = game2pgn(movesUCI)
-  print(board)
+  # testChess()
+  # testNotations()
+  # movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
+  # board = game2pgn(movesUCI)
+  # print(board)
 
   moveTurn = 0
   movesUCI = []
@@ -197,8 +196,11 @@ def main():
     #   check whos turn it is and check what position contains a piece with the same color, this will be the FROM position 
     pieceOnFirst = tupleToChesspiece(first, board)
     
-    print(pieceOnFirst)
-    if board.turn == pieceOnFirst.color:
+    print("piece: " + str(pieceOnFirst))
+    if pieceOnFirst is None:
+      print("FROM SECOND TO FIRST")
+      move = tupleToChessposition(second) + tupleToChessposition(first)
+    elif board.turn == pieceOnFirst.color :
       print("FROM FIRST TO SECOND")
       move = tupleToChessposition(first) + tupleToChessposition(second)
     else:
@@ -211,6 +213,11 @@ def main():
     print(board)
     movesUCI.append(move)
     print("move: " + move)
+    if board.is_checkmate():
+      print("CHECKMATE")
+      cv2.waitKey(0) 
+      break
+    #cv2.waitKey(0) 
     #load next move/image
     moveTurn += 1
     img = img2
