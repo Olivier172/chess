@@ -124,7 +124,7 @@ def detectBoard(img):
 def calcDiff(img, img2, offset, width, height):
   diff = cv2.absdiff(img, img2)
   diffGrid = np.zeros((BOARDROWS,BOARDCOLS),dtype=int)
-  first = (0,0,0)
+  first = (0,0,0) #intensity of the change, x, y
   second = (0,0,0)
   for row in range(BOARDROWS):
     y1 = offset[1] + row*height//BOARDROWS
@@ -208,7 +208,7 @@ def main():
       move = tupleToChessposition(second) + tupleToChessposition(first)
 
     #push the move to the board
-    moveObject=chess.Move.from_uci(move)
+    # moveObject=chess.Move.from_uci(move)
     board.push_uci(move)
     print(board)
     movesUCI.append(move)
@@ -217,7 +217,7 @@ def main():
       print("CHECKMATE")
       cv2.waitKey(0) 
       break
-    #cv2.waitKey(0) 
+    
     #load next move/image
     moveTurn += 1
     img = img2
