@@ -125,7 +125,7 @@ def detectBoard(img):
 def calcDiff(img, img2, offset, width, height):
   diff = cv2.absdiff(img, img2)
   diffGrid = np.zeros((BOARDROWS,BOARDCOLS),dtype=int)
-  first = (0,0,0)
+  first = (0,0,0) #intensity of the change, x, y
   second = (0,0,0)
   for row in range(BOARDROWS):
     y1 = offset[1] + row*height//BOARDROWS
@@ -161,12 +161,8 @@ def tupleToChessposition(tup):
 def tupleToChesspiece(tup, board):
   position = tupleToChessposition(tup)
   print("pos: "+ position)
-  # move = "e1"
-  # squ = chess.Square.from_square_string(move)
   piece = board.piece_at(chess.parse_square(position))
   print(piece)
-  # Get the piece at the square
-  # piece = board.piece_at(squ)
   return piece
 
 def main():
@@ -200,10 +196,13 @@ def main():
   #detect board
   offset, width, height = detectBoard(img)
   while img2 is not None:
+    #detect board via template matching
+    offset, width, height = detectBoard(img2)
+
     #calc the 2 squares on the board that changed the most from the previous move
     diffGrid, first, second = calcDiff(img, img2, offset, width, height)    
 
-    #intensity is no longer needed in the first and second var
+    #intensity of change is no longer needed in the first and second var
     first = first[1:3]
     second = second[1:3]
     #calc which is the FROM position and which is the TO position
@@ -222,7 +221,9 @@ def main():
       move = tupleToChessposition(second) + tupleToChessposition(first)
 
     #push the move to the board
-    moveObject=chess.Move.from_uci(move)
+    if(not(board.is_legal(chess.Move.from_uci(move)))):
+      print("last move was not legal " + move)
+      break
     board.push_uci(move)
     print(board)
     movesUCI.append(move)
@@ -231,7 +232,7 @@ def main():
       print("CHECKMATE")
       cv2.waitKey(0) 
       break
-    #cv2.waitKey(0) 
+    
     #load next move/image
     moveTurn += 1
     img = img2
