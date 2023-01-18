@@ -196,8 +196,6 @@ def main():
   #detect board
   offset, width, height = detectBoard(img)
   while img2 is not None:
-    #detect board via template matching
-    offset, width, height = detectBoard(img2)
 
     #calc the 2 squares on the board that changed the most from the previous move
     diffGrid, first, second = calcDiff(img, img2, offset, width, height)    
