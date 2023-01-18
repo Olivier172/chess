@@ -2,10 +2,12 @@ import cv2
 import numpy as np
 import chess
 import chess.pgn
+from datetime import datetime
+
 
 BOARDROWS = 8
 BOARDCOLS = 8
-GAMENR = 2
+GAMENR = 0
 
 def testChess():
     #Request a new chessboard:
@@ -50,7 +52,7 @@ def testNotations():
 # e.g. movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
 # output is the pgn of this game (printed in the terminal and saved to data/chessgame.pgn)
 # RETURNS: the final board so that you can display it in the notebook
-def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard", date="17.12.2022", white="Jorn", black="Olivier"):
+def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard", date="2023.01.01", white="Jorn", black="Olivier"):
   #Recording a game and writing it to a PGN
   game = chess.pgn.Game()
   game.headers["Event"] = event
@@ -85,40 +87,39 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
 def detectBoard(img):
   template = cv2.imread('data/games/template.jpg')
   h,w,_ = template.shape
-  imgListOut = list()
   methods = [cv2.TM_CCOEFF_NORMED, cv2.TM_CCORR_NORMED, cv2.TM_SQDIFF_NORMED]
-  for meth in methods:
-    imgCopy = img.copy()
-    res = cv2.matchTemplate(img,template,meth)
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    if meth == cv2.TM_SQDIFF_NORMED:
-      top_left = min_loc
-    else:
-      top_left = max_loc
-    print(w)
-    print(h) 
-    bottom_right = (top_left[0] + w, top_left[1] + h)
-    cv2.rectangle(imgCopy,top_left, bottom_right, (0,0,255),4)
-    bottom_left = (bottom_right[0]-w, bottom_right[1])
-    top_right = (top_left[0] + w, top_left[1])
-    print(top_right)
-    #draw vertical lines
-    for x in range(9):
-      startPt = (top_left[0]+x*w//8, top_left[1])
-      endPt = (bottom_left[0] +x*w//8, bottom_left[1])
-      cv2.line(imgCopy,startPt, endPt, (255,0,2),2)
-    #draw horizontal lines
-    for y in range(9):
-      startPt = (top_left[0], top_left[1]+y*h//8)
-      endPt = (top_right[0], top_right[1]+y*h//8)
-      cv2.line(imgCopy,startPt, endPt, (0,255,0),2)
-    imgListOut.append(imgCopy)
-  # cv2.imshow('input',img)  
-  # cv2.imshow('ccoeff',imgListOut[0])
-  # cv2.imshow('ccorr',imgListOut[1])
-  # cv2.imshow('sqdiff',imgListOut[2])
-  # # Waits for a keystroke
-  # cv2.waitKey(0) 
+  meth = methods[0] #we chose to use cv2.TM_CCOEFF_NORMED, but other methods work as well
+
+  imgCopy = img.copy()
+  res = cv2.matchTemplate(img,template,meth)
+  min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+  if meth == cv2.TM_SQDIFF_NORMED:
+    top_left = min_loc
+  else:
+    top_left = max_loc
+  print(w)
+  print(h) 
+  bottom_right = (top_left[0] + w, top_left[1] + h)
+  cv2.rectangle(imgCopy,top_left, bottom_right, (0,0,255),4)
+  bottom_left = (bottom_right[0]-w, bottom_right[1])
+  top_right = (top_left[0] + w, top_left[1])
+  print(top_right)
+  #draw vertical lines
+  for x in range(9):
+    startPt = (top_left[0]+x*w//8, top_left[1])
+    endPt = (bottom_left[0] +x*w//8, bottom_left[1])
+    cv2.line(imgCopy,startPt, endPt, (255,0,2),2)
+  #draw horizontal lines
+  for y in range(9):
+    startPt = (top_left[0], top_left[1]+y*h//8)
+    endPt = (top_right[0], top_right[1]+y*h//8)
+    cv2.line(imgCopy,startPt, endPt, (0,255,0),2)
+  cv2.imshow('input',img)  
+  cv2.imshow('image with lines',imgCopy)
+  # Waits for a keystroke
+  cv2.waitKey(0) 
+  #windows dichtdoen na detectie te hebben getoont
+  cv2.destroyAllWindows()
   return top_left, w, h
 
 def calcDiff(img, img2, offset, width, height):
@@ -176,16 +177,29 @@ def main():
   # board = game2pgn(movesUCI)
   # print(board)
 
+  #gathering game information:
+  #select the game you want to process
+  gameno = input("Which game do you want to process? [0-2]\n") 
+  if gameno not in ["0","1","2"]:
+    print("Thats not a legal game number")
+    exit()
+  GAMENR=int(gameno)
+  #player names
+  whitePlayer = input("Who is playing white?\n")
+  blackPlayer = input("Who is playing black?\n")
+  eventName = "Chess battle " + whitePlayer + " vs " + blackPlayer
+  #use current date as date of the event
+  gameDate=datetime.today().strftime('%Y.%m.%d') #format YYYY.MM.DD
+
   moveTurn = 0
   movesUCI = []
   board = chess.Board()
 
   img = cv2.imread(f"data/games/G{GAMENR}_{moveTurn:02d}_small.jpg")
   img2 = cv2.imread(f"data/games/G{GAMENR}_{moveTurn+1:02d}_small.jpg")
+  #detect board
+  offset, width, height = detectBoard(img)
   while img2 is not None:
-    #detect board
-    offset, width, height = detectBoard(img2)
-
     #calc the 2 squares on the board that changed the most from the previous move
     diffGrid, first, second = calcDiff(img, img2, offset, width, height)    
 
@@ -223,7 +237,7 @@ def main():
     img = img2
     img2 = cv2.imread(f"data/games/G{GAMENR}_{moveTurn+1:02d}_small.jpg")
 
-  game2pgn(movesUCI)
+  game2pgn(movesUCI,event=eventName,white=whitePlayer,black=blackPlayer,date=gameDate)
 
 
 
