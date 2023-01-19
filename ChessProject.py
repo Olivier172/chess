@@ -52,7 +52,7 @@ def testNotations():
 # e.g. movesUCI = ["e2e4","e7e5","d1h5","b8c6","f1c4","g8f6","h5f7"]
 # output is the pgn of this game (printed in the terminal and saved to data/chessgame.pgn)
 # RETURNS: the final board so that you can display it in the notebook
-def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard", date="2023.01.01", white="Jorn", black="Olivier"):
+def game2pgn(movesUCI, event="Chess battle J vs O", location="Campus Denayer", date="2023.01.01", white="Jorn", black="Olivier",round="1"):
   #Recording a game and writing it to a PGN
   game = chess.pgn.Game()
   game.headers["Event"] = event
@@ -60,6 +60,7 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
   game.headers["Date"] = date
   game.headers["White"] = white
   game.headers["Black"] = black
+  game.headers["Round"] = round
   node = game
   for m in movesUCI:
     b= node.board() #get the board of the current GameNode
@@ -67,12 +68,14 @@ def game2pgn(movesUCI, event="Chess battle J vs O", location="On the chessboard"
     #check if move is legal
     if(move not in b.legal_moves):
       print("Illegal move " + b.uci(move))
+      break
     #make the move
     node = node.add_main_variation(move)
     
   #saving the result of the main variation in the game headers for the pgn
   finalNode = game.end() #Follows the main variation to the end and returns the last node.
   game.headers["Result"] = finalNode.board().result()
+  
 
   #genreating the pgn in terminal and file
   print(50*"-")
